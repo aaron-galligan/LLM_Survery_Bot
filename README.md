@@ -36,7 +36,7 @@ pip install fastapi==0.68.1 uvicorn==0.15.0 sqlalchemy==1.4.23 pydantic==1.8.2 h
    ```bash
    uvicorn LLM_Survey_Bot_App.main:app --reload
    ```
-   or just run using you prefered IED.
+   or just run main.py using you prefered IED.
 
 4. **Access the Application**:
    Open your web browser and navigate to `http://localhost:8000` to access the application.
