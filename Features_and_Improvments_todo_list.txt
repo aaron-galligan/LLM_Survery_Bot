@@ -1,0 +1,54 @@
+
+
+
+
+
+#### UI
+
+Many aspects of the ui are not pollished or implemented at all.
+Once the 'Submit Answer' button is clicked there should be a change to indicate that the text has been submitted 
+    and that you can edit it if you wish. The text should go grey/moved to a setperate box/
+    disabled editing with an edit avilable/etc.
+
+As with all surverys there should be a final submit button that checks all questions have been answered and then
+    'submits' the final answers.
+
+For the Helper Hub (LLM) you have to keep scrolling down in order to keep typing in the the text box once the 
+    conversation gets long enough.
+
+Similarly when typing in the text box to ask a question, when the sentence gets long enough the text box should
+    expand in size to accomidate 2,3,4 lines of text instead of just scrolling to the right.
+
+
+
+#### Evaluation Metrics
+
+Solution 2 (as stated near the top of the llm_evaluation.py file) wouldn't be too hard to implement as it's a Similar
+    system as how the user survey answers are scored. If there were a list of previous conversations then an average
+    of relevance, correctness, sentiment, etc. can be calculated giving a quantitative way to compare how good the 
+    models are.
+
+
+
+
+
+#### Database management
+
+When a second (another) answer is submitted by the user, another entry is created in the db without doing anything 
+    to the first entry. Likely the best option is just to replace the previous answer entry for the question in the 
+    answers table with the new answer, and in the rare case that a previous answer would like to be viewed there is
+    already a log made in the conversations table. 
+
+The previous_conversations database has not been implemented, this would save all conversations had over time to the db.
+    This would allow us to gain insite on the sentiment of the user accross many different conversations, and help 
+    compare different models.
+
+
+#### Prompt Engineering
+
+Having trouble with prompt engerneering, the init_content prompt in llm.py is quite important with setting the ground
+    rules, one persistant issue is the LLM thinking that answering the survery in Helper Hub chat is the same as answering
+    the actual survery question.
+    One way of fixing this might be that with every user prompt I add a prepompt message such as:
+    "Ensure user has answered all questions before encouraging them to answer the next question, questions answered:
+    1. Yes, 2. No, 3.No. User message is as follows: "

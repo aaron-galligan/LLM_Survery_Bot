@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Survey Helper Hub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+        }
+        .container {
+            display: flex;
+            width: 100%;
+        }
+        .questions-container {
+            flex: 2;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+        }
+        .chat-container {
+            flex: 1;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .question-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            background-color: #f9f9f9;
+        }
+        .answer-form {
+            margin-top: 10px;
+        }
+        textarea {
+            width: calc(100% - 20px);
+            min-height: 100px;
+            margin-bottom: 10px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .feedback {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+        .chat-input {
+            display: flex;
+            gap: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="questions-container">
+            <h1>Survey Helper Hub</h1>
+            
+            {% if questions %}
+                {% for question in questions %}
+                    <div class="question-card">
+                        <h3>Question {{ question.id }}</h3>
+                        <p>{{ question.question_text }}</p>
+                        <div class="answer-form">
+                            <form onsubmit="submitAnswer(this, event)" data-question-id="{{ question.id }}">
+                                <textarea 
+                                    id="answer-{{ question.id }}" 
+                                    placeholder="Type your answer here..."
+                                    required
+                                ></textarea>
+                                <button type="submit">Submit Answer</button>
+                            </form>
+                            <div id="feedback-{{ question.id }}" class="feedback"></div>
+                        </div>
+                    </div>
+                {% endfor %}
+            {% else %}
+                <p>No questions available at the moment.</p>
+            {% endif %}
+        </div>
+        
+        <div class="chat-container">
+            <h3>Chat with the Helper Hub</h3>
+            <div class="chat-messages" id="chat-messages"></div>
+            <div class="chat-input">
+                <input type="text" id="chat-input" placeholder="Ask a question...">
+                <button onclick="sendMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function submitAnswer(form, event) {
+            //calls submit_answer()
+
+            event.preventDefault();
+            const questionId = form.dataset.questionId;
+            const answerText = document.getElementById(`answer-${questionId}`).value;
+            const feedbackDiv = document.getElementById(`feedback-${questionId}`);
+            
+            try {
+                const response = await fetch(`/questions/${questionId}/answer`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        answer_text: answerText
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    feedbackDiv.className = 'feedback success';
+                    feedbackDiv.textContent = `Answer submitted! ${data.feedback}`;
+                } else {
+                    feedbackDiv.className = 'feedback error';
+                    feedbackDiv.textContent = data.detail || 'Error submitting answer. Code: sA01';
+                    console.log('Error, response.ok is false, http respones fail.');
+                }
+
+                if (data.score <= 2) {
+
+                    try {
+                        const response = await fetch('/lowScoreChat', { // Call the low_score_chat endpoint
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({})
+                        });
+                        
+                        const chatData = await response.json(); // Get the response from low_score_chat
+                        feedbackDiv.innerHTML += `<p><strong>Helper Hub:</strong> ${chatData.response}</p>`;
+                    } catch (error) {
+                        feedbackDiv.innerHTML += `<p><strong>Error:</strong> Failed to get response. Code: sA02</p>`;
+                        console.log('Error submitting answer:', error);
+                    }
+                }
+                
+            } catch (error) {
+                feedbackDiv.className = 'feedback error';
+                feedbackDiv.textContent = 'Error connecting to server. Code: sA03';
+                console.log('Error submitting answer:', error);
+            }
+        }
+
+        async function sendMessage() {
+            const input = document.getElementById('chat-input');
+            const messages = document.getElementById('chat-messages');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            messages.innerHTML += `<p><strong>You:</strong> ${message}</p>`;
+            input.value = '';
+            
+            try {
+                const response = await fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ message })
+                });
+                
+                const data = await response.json();
+                messages.innerHTML += `<p><strong>Helper Hub:</strong> ${data.response}</p>`;
+            } catch (error) {
+                messages.innerHTML += `<p><strong>Error:</strong> Failed to get response. Code: sM01</p>`;
+                console.log('Error sending message:', error);
+            }
+            
+            messages.scrollTop = messages.scrollHeight;
+        }
+
+            // Function to send an initial greeting
+        async function sendGreeting() {
+            const messages = document.getElementById('chat-messages');
+            const greetingMessage = "Hello! I'm your survey helper. I'll be helping with your survery today!";
+            
+            // Add the greeting message
+            messages.innerHTML += `<p><strong>Helper Hub:</strong> ${greetingMessage}</p>`;
+            messages.scrollTop = messages.scrollHeight; // Scroll to the bottom
+        }
+
+        // Call the greeting function when the page loads
+        window.onload = function() {
+            sendGreeting();
+        };
+
+        // Add enter key support
+        document.getElementById('chat-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html> 
