@@ -18,7 +18,8 @@ app = FastAPI(title="LLM Survey Bot")
 # Initialize templates
 templates = Jinja2Templates(directory="LLM_Survey_Bot_App/templates")
 
-'''Pydantic models that are used for creating and re'''
+'''Pydantic models that are used for creating and questions and answers
+using the localhost:8000/docs'''
 class QuestionCreate(BaseModel):
     question_text: str
     quality_guideline: str = ""
